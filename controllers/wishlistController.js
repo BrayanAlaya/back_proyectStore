@@ -68,17 +68,16 @@ module.exports = {
     read: async (req, res) => {
 
         let userId = req.user.id;
-        let page = req.params.page;
-        let offset = 4;
+        let page = req.query.page ?? "";
+        let offset = 2;
 
-        if (!validation.isNumeric(page)) {
-            return res.json({
-                message: "didn't pass validation",
-                status: 500
-            })
-        }
+        if (validation.isEmpty(page) || !validation.isNumeric(page)) {
+            page = 1
+        } else  {
+            page = parseInt(page)
+        } 
 
-        const [data, total] = await prisma.$transaction([
+        await prisma.$transaction([
             prisma.wishlist.findMany(
                 {
                     where: {
@@ -86,6 +85,9 @@ module.exports = {
                     },
                     skip: parseInt(offset) * parseInt(page - 1),
                     take: parseInt(offset),
+                    orderBy: {
+                        id: "desc"
+                    }
                 }),
 
             prisma.wishlist.count({
@@ -93,13 +95,20 @@ module.exports = {
                     user_id: parseInt(userId)
                 }
             }),
-        ])
-
-        return res.json({
-            data: data,
-            total: total,
-            status: 200
+        ]).then(data => {
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
+        }).catch(error => {
+            return res.json({
+                message: "An error has ocurred",
+                status: 500
+            })
         })
+
+       
 
     },
 

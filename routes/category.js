@@ -8,7 +8,7 @@ const app = express();
 
 app.post("/", authenticaded, isAdmin ,controller.createCategory);
 app.put("/:id", authenticaded, isAdmin ,controller.updateCategory);
-app.get("/",controller.getCategories);
-app.get("/:id", controller.getCategory)
+
+app.get("/browse", controller.searchCategories) //query = name,page
 
 module.exports = app;

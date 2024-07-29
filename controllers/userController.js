@@ -45,9 +45,9 @@ module.exports = {
                         code_try: 0
                     }
 
-                    const sendEmail = email.sendRegisterEmail("brayan.alaya@hotmail.com");
+                    const sendEmail = email.sendRegisterEmail("antonyalaya96@hotmail.com");
 
-                    if(sendEmail){
+                    if (sendEmail) {
                         response = {
                             status: 400,
                             message: "Email not allow"
@@ -416,9 +416,9 @@ module.exports = {
         let emailValid = false;
 
         try {
-            
+
             emailValid = validator.isEmail(body.email)
-            
+
         } catch (error) {
             return res.json({
                 status: 500,
@@ -439,7 +439,7 @@ module.exports = {
             where: {
                 email: body.email
             },
-            data:{
+            data: {
                 auth_code: code,
                 code_try: 0,
             }
@@ -447,6 +447,7 @@ module.exports = {
             //edgaralaya_01@hotmail.com
             //brayan.alaya@hotmail.com
             //antonyalaya96@gmail.com
+
             email.sendCode("brayan.alaya@hotmail.com", code);
 
             return res.json({
@@ -461,7 +462,7 @@ module.exports = {
             })
         })
 
-        
+
 
     },
     authAccount: async (req, res) => {
@@ -480,7 +481,7 @@ module.exports = {
         }).then(data => {
 
             if (data.auth == 1) {
-                
+
                 return res.json({
                     status: 200,
                     message: "User authenticaded"
@@ -505,7 +506,7 @@ module.exports = {
         const body = req.body
 
         try {
-            
+
             const passwordValid = validator.isEmpty(body.password.trim())
 
             if (passwordValid) {

@@ -77,75 +77,45 @@ module.exports = {
 
     },
 
-    get: async (req, res) => {
-
-        let userId = req.user.id;
-
-        await prisma.cart.findMany({
-            where: {
-                user_id: Number(userId)
-            }
-        }).then(data => {
-
-            return res.json({
-                data: data,
-                status: 200
-            })
-
-        }).catch(error => {
-            return res.json({
-                error: error,
-                status: 500
-            })
-        })
-    },
-
     getByPage: async (req, res) => {
 
         let userId = req.user.id;
-        let page = req.params.page;
+        let page = parseInt(req.query.page ?? "1");
         let offset = 3;
-        try {
 
-            if (!isNumeric(page)) {
-                return res.json({
-                    message: "didn't pass validation",
-                    status: 500
-                })
-            }
-
-        } catch (error) {
-            return res.json({
-                error: error,
-                status: 500
-            })
-        }
-
-        const [data, total] = await prisma.$transaction([
-            prisma.cart.findMany(
-                {
-                    where: {
-                        user_id: parseInt(userId)
-                    },
-                    skip: parseInt(offset) * parseInt(page - 1),
-                    take: parseInt(offset),
-                    include: {
-                        products: true
-                    }
-                }),
+        await prisma.$transaction([
+            prisma.cart.findMany({
+                where: {
+                    user_id: parseInt(userId)
+                },
+                skip: parseInt(offset) * parseInt(page - 1),
+                take: parseInt(offset),
+                include: {
+                    products: true
+                },
+                orderBy: {
+                    id: "desc"
+                }
+            }),
 
             prisma.cart.count({
                 where: {
                     user_id: parseInt(userId)
                 }
             }),
-        ])
-
-        return res.json({
-            data: data,
-            total: total,
-            status: 200
+        ]).then(data => {
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
+        }).catch(error => {
+            return res.json({
+                message: "An error has ocurred",
+                status: 500
+            })
         })
+
 
     },
 
@@ -189,6 +159,7 @@ module.exports = {
         })
 
     },
+
     deleteMany: async (req, res) => {
 
         let userId = req.user.id;

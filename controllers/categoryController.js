@@ -1,4 +1,4 @@
-const { isEmpty } = require("validator");
+const { isEmpty, isNumeric } = require("validator");
 const prisma = require("../orm");
 
 module.exports = {
@@ -10,9 +10,9 @@ module.exports = {
         try {
 
             const nameValidate = !isEmpty(body.name)
-            
+
             if (nameValidate) {
-                
+
                 const responseQuery = await prisma.categories.create({
                     data: body
                 })
@@ -22,15 +22,15 @@ module.exports = {
                     response = {
                         status: 200,
                         data: responseQuery
-                    }                    
-                } else{
+                    }
+                } else {
                     response = {
                         status: 500
                     }
                 }
 
 
-            } else{
+            } else {
                 response = {
                     status: 400,
                     message: "Validation failed"
@@ -40,42 +40,64 @@ module.exports = {
         } catch (error) {
             response = {
                 status: 500
-            }            
+            }
         }
 
         res.json(response)
     },
-    
-    getCategories: async (req, res) => {
 
-        let response = {}
+    searchCategories: async (req, res) => {
 
-        try {
-            
-            const categories = await prisma.categories.findMany()
+        const offset = 10;
 
-            if (categories.length != 0) {
-                response = {
-                    status: 200,
-                    data: categories
+        let page = req.query.page ?? "1"
+        const name = req.query.name ?? ""
+
+        if (isEmpty(page) || !isNumeric(page)) {
+            page = 1
+        } else {
+            page = parseInt(page)
+        }
+
+        await prisma.$transaction([
+            prisma.categories.findMany({
+                where: {
+                    name: {
+                        startsWith: "%" + name + "%"
+                    }
+                },
+                skip: offset * (page - 1),
+                take: offset,
+                orderBy: {
+                    name: "desc"
                 }
-            } else{
-                response = {
-                    status: 400,
-                    message: "No categories"
+            }),
+            prisma.categories.count({
+                where: {
+                    name: {
+                        startsWith: "%" + name + "%"
+                    }
                 }
-            }
+            })
+        ]).then(data => {
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
 
-        } catch (error) {
-            response = {
+        }).catch(error => {
+            console.log(error)
+            return res.json({
+                message: "An error has ocurred",
                 status: 500
-            }
-        }
+            })
+        })
 
-        res.json(response)
+
     },
 
-    updateCategory: async (req,res) => {
+    updateCategory: async (req, res) => {
 
         let response = {}
         const body = req.body
@@ -84,10 +106,10 @@ module.exports = {
         try {
 
             const nameValidate = !isEmpty(body.name)
-            
+
             if (nameValidate) {
-                
-             
+
+
                 await prisma.categories.update({
                     where: {
                         id: Number(id)
@@ -95,14 +117,14 @@ module.exports = {
                     data: {
                         name: body.name
                     }
-                }).then( data => {
+                }).then(data => {
 
                     response = {
                         status: 200,
                         data: data
                     }
 
-                }). catch(error => {
+                }).catch(error => {
                     console.log(error)
 
                     response = {
@@ -110,7 +132,7 @@ module.exports = {
                     }
                 })
 
-            } else{
+            } else {
                 response = {
                     status: 400,
                     message: "Validation failed"
@@ -122,37 +144,10 @@ module.exports = {
 
             response = {
                 status: 500
-            }            
+            }
         }
 
         return res.json(response)
-    },
-
-    getCategory: async (req,res) => {
-
-        const id = Number(req.params.id)
-
-        await prisma.categories.findUnique({
-            where: {
-                id:id
-            }
-        }).then(data => {
-            if (data) {
-                return res.json({
-                    status: 200,
-                    data: data
-                })
-            } else{
-                return res.json({
-                    status: 400
-                })
-            }
-        }).catch(error => {
-            return res.json({
-                status: 500
-            })
-        })
-
     }
 
 }

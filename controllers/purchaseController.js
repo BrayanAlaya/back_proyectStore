@@ -20,8 +20,10 @@ module.exports = {
             if (data.length > 0) {
 
                 let monto = 0;
+                let descrpcion = []
                 data.forEach(d => {
                     monto += parseFloat(d.products.price) * parseFloat(d.amount)
+                    descrpcion.push(d.products.name)
                 });
                 const createdDates = moment().toISOString(true)
 
@@ -29,7 +31,8 @@ module.exports = {
                     data: {
                         user_id: parseInt(userId),
                         monto: monto,
-                        date: createdDates
+                        date: createdDates,
+                        descripcion: descrpcion.join(",")
                     }
                 }).then(async (purchaseData) => {
 
@@ -110,28 +113,35 @@ module.exports = {
             })
         }
 
-        const [data, total] = await prisma.$transaction([
-            prisma.purchases.findMany(
-                {
-                    where: {
-                        user_id: parseInt(userId)
-                    },
-                    skip: parseInt(offset) * parseInt(page - 1),
-                    take: parseInt(offset),
-                }),
+        await prisma.$transaction([
+            prisma.purchases.findMany({
+                where: {
+                    user_id: parseInt(userId)
+                },
+                skip: parseInt(offset) * parseInt(page - 1),
+                take: parseInt(offset),
+            }),
 
             prisma.purchases.count({
                 where: {
                     user_id: parseInt(userId)
                 }
             }),
-        ])
+        ]).then(data => {
 
-        return res.json({
-            data: data,
-            total: total,
-            status: 200
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
+        }).catch(error => {
+
+            return res.json({
+                status: 500,
+                message: "An error has ocurred"
+            })
         })
+
 
     },
     getDetails: async (req, res) => {
@@ -145,10 +155,10 @@ module.exports = {
         }
 
         await prisma.purchase_details.findMany({
-            where:{
+            where: {
                 purchase_id: parseInt(purchaseId)
             },
-            include:{
+            include: {
                 products: true
             }
         }).then(data => {
@@ -176,23 +186,28 @@ module.exports = {
             })
         }
 
-        const [purchaseEliminated, purchaseDetailEliminated] = await prisma.$transaction([
+        await prisma.$transaction([
             prisma.purchase_details.deleteMany({
-                where:{
+                where: {
                     purchase_id: parseInt(purchaseId)
                 }
             }),
             prisma.purchases.delete({
-                where:{
+                where: {
                     id: parseInt(purchaseId)
                 }
             })
-        ])
-
-        return res.json({
-            purchase: purchaseEliminated,
-            purchaseDetails: purchaseDetailEliminated,
-            status: 200
+        ]).then(data => {
+            return res.json({
+                purchase: data[0],
+                purchaseDetails: data[1],
+                status: 200
+            })
+        }).catch(error => {
+            return res.json({
+                status: 500,
+                message: "An error has ocurred"
+            })
         })
 
     }

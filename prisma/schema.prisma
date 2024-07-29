@@ -51,6 +51,7 @@ model purchases {
   user_id          Int?
   date             DateTime?          @db.Date
   monto            Int?
+  descripcion      String?            @db.LongText
   purchase_details purchase_details[]
   users            users?             @relation(fields: [user_id], references: [id], onUpdate: SetNull, map: "userIdP")
 

@@ -1,7 +1,7 @@
 const { isEmpty } = require("validator");
 const prisma = require("../orm");
 const moment = require("moment");
-const validation = require("validator")
+const validation = require("validator");
 
 module.exports = {
     save: async (req, res) => {
@@ -11,20 +11,20 @@ module.exports = {
 
         try {
 
-            const nameValid = !isEmpty(post.name)
-            const stockValid = !isEmpty(post.stock)
-            const priceValid = !isEmpty(post.price)
-            const descriptionValid = !isEmpty(post.description)
-            const categoryIdValid = !isEmpty(post.category_id)
+            const nameValid = !isEmpty(post.name.trim())
+            const stockValid = !isEmpty(post.stock.trim())
+            const priceValid = !isEmpty(post.price.trim())
+            const descriptionValid = !isEmpty(post.description.trim())
+            const categoryIdValid = !isEmpty(post.category_id.trim())
 
             if (nameValid, stockValid, priceValid, descriptionValid, categoryIdValid) {
 
                 await prisma.products.create({
                     data: {
-                        name: post.name,
+                        name: post.name.trim(),
                         stock: Number(post.stock),
-                        price: parseFloat(post.price),
-                        description: post.description,
+                        price: parseFloat(post.price.trim()),
+                        description: post.description.trim(),
                         createdDate: moment().toISOString(),
                         category_id: Number(post.category_id),
                         user_id: Number(user_id)
@@ -58,78 +58,109 @@ module.exports = {
 
     },
 
-    getByUserId: async (req, res) => {
+    // getByUserId: async (req, res) => {
 
-        let userId = req.params.id;
-        let page = req.params.page;
-        let offset = 5;
+    //     let userId = req.params.id;
+    //     let page = req.params.page;
+    //     let offset = 10;
 
-        if (!validation.isNumeric(page)|| !validation.isNumeric(userId)) {
-            return res.json({
-                message: "didn't pass validation",
-                status: 500
-            })
+    //     if (!validation.isNumeric(page) || !validation.isNumeric(userId)) {
+    //         return res.json({
+    //             message: "didn't pass validation",
+    //             status: 500
+    //         })
+    //     }
+
+    //     await prisma.$transaction([
+    //         prisma.products.findMany({
+    //             where: {
+    //                 user_id: parseInt(userId)
+    //             },
+    //             skip: parseInt(offset) * parseInt(page - 1),
+    //             take: parseInt(offset),
+    //             orderBy: {
+    //                 id: "desc"
+    //             }
+    //         }),
+
+    //         prisma.products.count({
+    //             where: {
+    //                 user_id: parseInt(userId)
+    //             }
+    //         }),
+    //     ]).then(data => {
+    //         return res.json({
+    //             data: data[0],
+    //             count: data[1],
+    //             status: 200
+    //         })
+    //     }).catch(error => {
+    //         return res.json({
+    //             message: "An error has ocurred",
+    //             status: 500
+    //         })
+    //     })
+    // },
+
+    getBySearch: async (req, res) => {
+
+        let name = req.query.name ?? "";
+        let page = req.query.page ?? "1";
+        let user_id = req.query.user ?? "";
+        let category = req.query.category ?? "";
+        let offset = 10;
+
+        let search = {}
+
+        if (!validation.isEmpty(name)) {
+            search['name'] = {
+                startsWith: "%" + name + "%"
+            }
         }
 
-        const [data, total] = await prisma.$transaction([
-            prisma.products.findMany(
-                {
-                    where: {
-                        user_id: parseInt(userId)
-                    },
-                    skip: parseInt(offset) * parseInt(page - 1),
-                    take: parseInt(offset),
-                }),
-
-            prisma.products.count({
-                where: {
-                    user_id: parseInt(userId)
-                }
-            }),
-        ])
-
-        return res.json({
-            data: data,
-            total: total,
-            status: 200
-        })
-
-    },
-
-    getByCategoryId: async (req, res) => {
-
-        let categoryId = req.params.id;
-        let page = req.params.page;
-        let offset = 5;
-
-        if (!validation.isNumeric(page) || !validation.isNumeric(categoryId)) {
-            return res.json({
-                message: "didn't pass validation",
-                status: 500
-            })
+        if (validation.isNumeric(category)) {
+            search['category_id'] = parseInt(category)
         }
 
-        const [data, total] = await prisma.$transaction([
+        if(validation.isNumeric(user_id)){
+            search['user_id'] = parseInt(user_id)
+        }
+
+        if (validation.isEmpty(page) || !validation.isNumeric(page)) {
+            page = 1
+        } else  {
+            page = parseInt(page)
+        } 
+
+        console.log(search)
+
+        await prisma.$transaction([
             prisma.products.findMany({
-                where: {
-                    category_id: parseInt(categoryId)
-                },
+                where: search,
                 skip: parseInt(offset) * parseInt(page - 1),
                 take: parseInt(offset),
+                orderBy: {
+                    id: "desc"
+                }
             }),
 
             prisma.products.count({
-                where: {
-                    category_id: parseInt(categoryId)
-                }
+                where: search
             }),
-        ])
-
-        return res.json({
-            data: data,
-            total: total,
-            status: 200
+        ]).then(data => {
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
+        }).catch(error => {
+            console.log(error)
+            return res.json({
+                message: "An error has ocurred",
+                status: 500
+            })
         })
+
 
     },
 

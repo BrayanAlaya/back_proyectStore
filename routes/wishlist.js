@@ -5,7 +5,7 @@ const controller = require("../controllers/wishlistController");
 let app = express()
 
 app.post("/",authMiddleware, controller.save);
-app.get("/:page", authMiddleware, controller.read);
+app.get("/", authMiddleware, controller.read);
 app.delete("/:id", authMiddleware, controller.delete);
 
 module.exports = app;

@@ -5,7 +5,6 @@ const authCode = require("../middleware/authCode")
 
 const app = express();
 
-
 app.post("/register", controller.register);
 app.post("/login", controller.login);
 

@@ -1,4 +1,3 @@
-const { isEmpty } = require("validator");
 const prisma = require("../orm");
 const moment = require("moment");
 const validation = require("validator")
@@ -54,17 +53,16 @@ module.exports = {
     getByUser: async (req, res) => {
 
         let userId = req.user.id;
-        let page = req.params.page;
+        let page = req.query.page ?? "1";
         let offset = 5;
 
-        if (!validation.isNumeric(page)) {
-            return res.json({
-                message: "didn't pass validation",
-                status: 500
-            })
+        if (validation.isEmpty(page) || !validation.isNumeric(page)) {
+            page = 1
+        } else {
+            page = parseInt(page)
         }
 
-        const [data, total] = await prisma.$transaction([
+        await prisma.$transaction([
             prisma.notifications.findMany(
                 {
                     where: {
@@ -72,6 +70,9 @@ module.exports = {
                     },
                     skip: parseInt(offset) * parseInt(page - 1),
                     take: parseInt(offset),
+                    orderBy: {
+                        id: "desc"
+                    }
                 }),
 
             prisma.notifications.count({
@@ -79,13 +80,20 @@ module.exports = {
                     user_Id: parseInt(userId)
                 }
             }),
-        ])
-
-        return res.json({
-            data: data,
-            total: total,
-            status: 200
+        ]).then(data => {
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
+        }).catch(error => {
+            return res.json({
+                status: 500,
+                message: "An error has ocurred"
+            })
         })
+
+
 
     },
 

@@ -5,8 +5,7 @@ const cartController = require("../controllers/cartController");
 let app = express();
 
 app.post("/", auth ,cartController.save);
-app.get("/", auth ,cartController.get);
-app.get("/:page", auth ,cartController.getByPage);
+app.get("/", auth ,cartController.getByPage);
 app.delete("/:id", auth ,cartController.delete);
 app.delete("/", auth ,cartController.deleteMany);
 
