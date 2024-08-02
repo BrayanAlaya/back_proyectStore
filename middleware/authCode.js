@@ -6,6 +6,8 @@ module.exports = (req,res,next) => {
 
     let user = jwt.data(token, process.env.JWTPASSWORD_AUTHCODE)
 
+    console.log(token)
+
     if (user.email) {
         req.user = user
         next()

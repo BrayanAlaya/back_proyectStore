@@ -10,6 +10,7 @@ module.exports = {
 
     register: async (req, res) => {
 
+
         let response = {};
         let params = await req.body;
 
@@ -19,7 +20,6 @@ module.exports = {
             const validBirthdate = !validator.isEmpty(params.birthDate) && validator.isDate(params.birthDate);
             const validEmail = !validator.isEmpty(params.email.trim()) && validator.isEmail(params.email.trim());
             const validPassword = !validator.isEmpty(params.password.trim());
-
             if (validName && validBirthdate && validEmail && validPassword) {
 
                 const emailExist = await prisma.users.findUnique({
@@ -42,10 +42,11 @@ module.exports = {
                         password: passwordHash,
                         createdDate: createdDatee,
                         auth_code: Math.floor(Math.random() * (8549 - 2186 + 1) + 2186),
-                        code_try: 0
+                        code_try: 0,
                     }
 
-                    const sendEmail = email.sendRegisterEmail("antonyalaya96@hotmail.com");
+
+                    const sendEmail = email.sendRegisterEmail(params.email.trim().toLowerCase());
 
                     if (sendEmail) {
                         response = {
@@ -85,7 +86,6 @@ module.exports = {
             }
         }
 
-
         return res.json(response);
     },
     login: async (req, res) => {
@@ -108,16 +108,17 @@ module.exports = {
 
                 if (user && user.eliminado != 1) {
 
-                    if (user.auth != 1) {
-                        return res.json({
-                            status: 401,
-                            message: "Error de autenticacion de email"
-                        })
-                    }
-
                     if (bcrypt.compareSync(params.password, user.password)) {
 
                         const token = jwt.token(user)
+
+                        if (user.auth != 1) {
+                            return res.json({
+                                status: 401,
+                                token: token,
+                                data: jwt.data(token)
+                            })
+                        }
 
                         return res.json({
                             status: 200,
@@ -315,10 +316,11 @@ module.exports = {
         try {
 
             emailValid = validator.isEmail(body.email);
-            codeValid = validator.isNumeric(body.code);
+            codeValid = validator.isNumeric(body.auth_code);
 
         } catch (error) {
-            return res, json({
+            console.log(error)
+            return res.json({
                 status: 500,
                 message: "An error has ocurred"
             })
@@ -344,12 +346,12 @@ module.exports = {
                 })
             }
 
-            if (data.auth_code == parseInt(body.code)) {
+            if (parseInt(data.auth_code) == parseInt(body.auth_code)) {
 
                 await prisma.users.update({
                     where: {
                         email: data.email,
-                        auth_code: parseInt(body.code)
+                        auth_code: parseInt(body.auth_code)
                     },
                     data: {
                         auth_code: null,
@@ -448,7 +450,7 @@ module.exports = {
             //brayan.alaya@hotmail.com
             //antonyalaya96@gmail.com
 
-            email.sendCode("brayan.alaya@hotmail.com", code);
+            email.sendCode(body.email, code);
 
             return res.json({
                 status: 200,
@@ -458,7 +460,7 @@ module.exports = {
             console.log(error)
             return res.json({
                 status: 500,
-                message: "a"
+                message: "An error has ocurred"
             })
         })
 
