@@ -48,7 +48,7 @@ module.exports = {
 
     searchCategories: async (req, res) => {
 
-        const offset = 10;
+        const offset = 6;
 
         let page = req.query.page ?? "1"
         const name = req.query.name ?? ""
@@ -69,7 +69,7 @@ module.exports = {
                 skip: offset * (page - 1),
                 take: offset,
                 orderBy: {
-                    name: "desc"
+                    name: "asc"
                 }
             }),
             prisma.categories.count({
