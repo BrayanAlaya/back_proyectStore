@@ -1,10 +1,12 @@
 'use strict'
+require('dotenv').config()
 const validator = require("validator");
 const prisma = require("../orm");
 const bcrypt = require("bcryptjs");
 const moment = require("moment");
 const jwt = require("../services/jwt");
 const email = require("../services/mail/sendAuthCode");
+
 
 module.exports = {
 
@@ -204,7 +206,7 @@ module.exports = {
         let response = {}
         let userUpdate = req.body
         let userId = req.user.id
-
+        
         try {
 
             const responseUpdate = await prisma.users.update({

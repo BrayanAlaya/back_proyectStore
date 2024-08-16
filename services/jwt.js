@@ -1,4 +1,5 @@
 const jwtService = require("jsonwebtoken");
+require('dotenv').config()
 
 const passwordJWT = process.env.JWTPASSWORD;
 
