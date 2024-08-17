@@ -6,19 +6,17 @@ const bodyParser = require("body-parser");
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(bodyParser.json());
 
-const allowedOrigins = ['www.storeproyect.brayanalaya.dev', 'storeproyect.brayanalaya.dev'];
+const allowedOrigins = ['https://storeproyect.brayanalaya.dev'];
 
 const corsOptions = {
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
+  origin: function (origin, callback) {
+    // Permitir solicitudes sin origen (por ejemplo, desde Postman) o desde los dominios permitidos
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
-  },
-  methods: 'GET,POST,PUT,DELETE',
-  allowedHeaders: 'Content-Type,Authorization',
-  credentials: true
+  }
 };
 
 app.use(cors(corsOptions));

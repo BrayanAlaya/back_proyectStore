@@ -19,9 +19,10 @@ module.exports = {
         try {
 
             const validName = !validator.isEmpty(params.name.trim());
-            const validBirthdate = !validator.isEmpty(params.birthDate) && validator.isDate(params.birthDate);
+            const validBirthdate = !validator.isEmpty(params.birthdate) && validator.isDate(params.birthdate);
             const validEmail = !validator.isEmpty(params.email.trim()) && validator.isEmail(params.email.trim());
             const validPassword = !validator.isEmpty(params.password.trim());
+            
             if (validName && validBirthdate && validEmail && validPassword) {
 
                 const emailExist = await prisma.users.findUnique({
@@ -34,12 +35,12 @@ module.exports = {
 
                     const passwordHash = bcrypt.hashSync(params.password.trim(), bcrypt.genSaltSync(10));
 
-                    const birthDate = moment(params.birthDate).toISOString(true)
+                    const birthDateIso = moment(params.birthdate).toISOString(true)
                     const createdDatee = moment().toISOString(true)
 
                     let payload = {
                         name: params.name.trim(),
-                        birthdate: birthDate.trim(),
+                        birthdate: birthDateIso,
                         email: params.email.trim().toLowerCase(),
                         password: passwordHash,
                         createdDate: createdDatee,
