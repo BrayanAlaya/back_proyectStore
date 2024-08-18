@@ -1,4 +1,5 @@
 const jwt = require("../services/jwt")
+require('dotenv').config()
 
 module.exports = (req,res,next) => {
 

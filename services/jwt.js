@@ -17,7 +17,6 @@ const jwt = {
 
             return error
         }
-       
     },
 
     data: (token, password = passwordJWT) => {

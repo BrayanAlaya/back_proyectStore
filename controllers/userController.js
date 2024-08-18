@@ -6,7 +6,9 @@ const bcrypt = require("bcryptjs");
 const moment = require("moment");
 const jwt = require("../services/jwt");
 const email = require("../services/mail/sendAuthCode");
-
+const s3 = require("../services/s3")
+const crypto = require("crypto")
+const sharp = require("sharp")
 
 module.exports = {
 
@@ -22,7 +24,7 @@ module.exports = {
             const validBirthdate = !validator.isEmpty(params.birthdate) && validator.isDate(params.birthdate);
             const validEmail = !validator.isEmpty(params.email.trim()) && validator.isEmail(params.email.trim());
             const validPassword = !validator.isEmpty(params.password.trim());
-            
+
             if (validName && validBirthdate && validEmail && validPassword) {
 
                 const emailExist = await prisma.users.findUnique({
@@ -204,50 +206,59 @@ module.exports = {
     },
     update: async (req, res) => {
 
-        let response = {}
         let userUpdate = req.body
         let userId = req.user.id
-        
-        try {
+        const file = req.file
+        let imageUrl = null
 
-            const responseUpdate = await prisma.users.update({
-                where: {
-                    id: userId
-                },
-                data: {
-                    name: userUpdate.name
-                }
-            })
 
-            if (responseUpdate) {
+        if (file) {
+            const generatedName = crypto.randomBytes(10).toString('hex') + Date.now().toString()
+            imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_BUCKET_REGION}.amazonaws.com/${generatedName}`
+            const fileBuffer = await sharp(file.buffer)
+                .resize({ height: 720, width: 1280, fit: "contain" })
+                .toBuffer();
 
-                const token = jwt.token(responseUpdate)
-
-                response = {
-                    status: 200,
-                    token: token,
-                    data: jwt.data(token)
-                }
-            } else {
-                response = {
-                    status: 400,
-                    message: "An error has acurred"
-                }
+            try {
+                await s3.uploadFile(fileBuffer, generatedName, file.mimetype)
+            } catch (error) {
+                console.log(error)
+                return res.json({
+                    status: 500,
+                    message: "An error has acurred dasdads"
+                });
             }
 
-        } catch (error) {
-            response = {
-                status: 500,
-                message: "An error has acurred"
-            }
         }
 
+        let data = {
+            name: userUpdate.name
+        }
 
-        return res.json(response);
-    },
-    uploadAvatar: (req, res) => {
+        if (imageUrl != null) {
+            data["image"] = imageUrl
+        }
 
-        return res.json("dadda");
+        await prisma.users.update({
+            where: {
+                id: userId
+            },
+            data: data
+        }).then(data => {
+            const token = jwt.token(data)
+            return res.json({
+                status: 200,
+                token: token,
+                data: jwt.data(token)
+            });
+        }).catch(error => {
+            console.log(error)
+            return res.json({
+                status: 500,
+                message: "An error has acurred"
+            });
+        })
+
     },
     delete: async (req, res) => {
 

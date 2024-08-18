@@ -29,7 +29,7 @@ model products {
   id               Int                @id @default(autoincrement())
   name             String?            @db.VarChar(45)
   stock            Int?
-  image            String?            @db.VarChar(70)
+  image            String?            @db.VarChar(90)
   price            Decimal?           @db.Decimal(10, 2)
   description      String?            @db.VarChar(150)
   createdDate      DateTime?          @db.Date
@@ -66,7 +66,7 @@ model users {
   password      String          @db.VarChar(70)
   rol           Int?
   createdDate   DateTime        @db.Date
-  image         String?         @db.VarChar(70)
+  image         String?         @db.VarChar(90)
   eliminado     Int?            @db.TinyInt
   auth          Int?            @db.TinyInt
   auth_code     Int?

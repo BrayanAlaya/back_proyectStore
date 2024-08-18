@@ -2,6 +2,10 @@ const express = require("express");
 const controller = require("../controllers/userController");
 const middlewareAuth = require("../middleware/authenticaded")
 const authCode = require("../middleware/authCode")
+const multer = require("multer")
+
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 const app = express();
 
@@ -14,7 +18,7 @@ app.post("/code/auth-account", authCode, controller.authAccount)
 app.post("/code/change-password", authCode ,controller.changePassword)
 
 app.get("/getUser/:id", controller.getUser);
-app.put("/update", middlewareAuth ,controller.update);
+app.put("/update", middlewareAuth, upload.single('image'),controller.update);
 app.delete("/delete", middlewareAuth ,controller.delete);
 
 module.exports = app;
