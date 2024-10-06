@@ -20,19 +20,45 @@ module.exports = {
             if (data.length > 0) {
 
                 let monto = 0;
-                let descrpcion = []
+                let description = []
                 data.forEach(d => {
                     monto += parseFloat(d.products.price) * parseFloat(d.amount)
-                    descrpcion.push(d.products.name)
+                    description.push(d.products.name)
                 });
-                const createdDates = moment().toISOString(true)
+
+                let amountInvalidProductId = []
+
+                data.forEach(productCart => {
+                    if (productCart.amount > productCart.products.stock) {
+                        amountInvalidProductId.push(productCart.product_id)
+                    }
+                });
+
+                if (amountInvalidProductId.length > 0) {
+                    return res.json({
+                        data: amountInvalidProductId,
+                        status: 400
+                    })
+                }
+
+                const updates = data.map(item =>
+                    prisma.products.update({
+                        where: { id: item.products.id },
+                        data: {
+                            stock: item.products.stock - parseInt(item.amount)
+                        },
+                    })
+                );
+
+                // Ejecutar todas las promesas dentro de una transacción
+                await prisma.$transaction(updates).catch(error => req.json({ message: "An error has ocurred", status: 500 }))
 
                 await prisma.purchases.create({
                     data: {
                         user_id: parseInt(userId),
                         monto: monto,
-                        date: createdDates,
-                        descripcion: descrpcion.join(",")
+                        date: moment().toISOString(true),
+                        description: description.join(",")
                     }
                 }).then(async (purchaseData) => {
 
@@ -103,14 +129,13 @@ module.exports = {
     get: async (req, res) => {
 
         let userId = req.user.id;
-        let page = req.params.page;
-        let offset = 5;
+        let page = req.query.page ?? "0";
+        let offset = 6;
 
-        if (!validation.isNumeric(page)) {
-            return res.json({
-                message: "didn't pass validation",
-                status: 500
-            })
+        if (validation.isEmpty(page) || !validation.isNumeric(page)) {
+            page = 0
+        } else {
+            page = parseInt(page)
         }
 
         await prisma.$transaction([
@@ -118,8 +143,11 @@ module.exports = {
                 where: {
                     user_id: parseInt(userId)
                 },
-                skip: parseInt(offset) * parseInt(page - 1),
+                skip: parseInt(offset) * parseInt(page),
                 take: parseInt(offset),
+                orderBy: {
+                    id: "desc"
+                }
             }),
 
             prisma.purchases.count({
@@ -172,6 +200,57 @@ module.exports = {
             return res.json({
                 message: error,
                 status: 500
+            })
+        })
+    },
+    getSales: async (req, res) => {
+
+        const userId = req.user.id;
+        let page = req.query.page ?? "0";
+        let offset = 6;
+
+        if (validation.isEmpty(page) || !validation.isNumeric(page)) {
+            page = 0
+        } else {
+            page = parseInt(page)
+        }
+
+        await prisma.$transaction([
+            prisma.purchase_details.findMany({
+                where: {
+                    products: {
+                        user_id: parseInt(userId)
+                    }
+                },
+                include: {
+                    products: true
+                },
+                skip: parseInt(offset) * parseInt(page),
+                take: parseInt(offset),
+                orderBy: {
+                    id: "desc"
+                }
+            }),
+
+            prisma.purchase_details.count({
+                where: {
+                    products: {
+                        user_id: parseInt(userId)
+                    }
+                }
+            }),
+        ]).then(data => {
+
+            return res.json({
+                data: data[0],
+                count: data[1],
+                status: 200
+            })
+        }).catch(error => {
+
+            return res.json({
+                status: 500,
+                message: "An error has ocurred"
             })
         })
     },

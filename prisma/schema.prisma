@@ -29,9 +29,9 @@ model products {
   id               Int                @id @default(autoincrement())
   name             String?            @db.VarChar(45)
   stock            Int?
-  image            String?            @db.VarChar(90)
+  image            Json?
   price            Decimal?           @db.Decimal(10, 2)
-  description      String?            @db.VarChar(150)
+  description      String?            @db.VarChar(750)
   createdDate      DateTime?          @db.Date
   category_id      Int?
   user_id          Int?
@@ -51,7 +51,7 @@ model purchases {
   user_id          Int?
   date             DateTime?          @db.Date
   monto            Int?
-  descripcion      String?            @db.LongText
+  description      String?            @db.VarChar(500)
   purchase_details purchase_details[]
   users            users?             @relation(fields: [user_id], references: [id], onUpdate: SetNull, map: "userIdP")
 

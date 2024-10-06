@@ -48,44 +48,15 @@ module.exports = {
 
     searchCategories: async (req, res) => {
 
-        const offset = 6;
-
-        let page = req.query.page ?? "1"
-        const name = req.query.name ?? ""
-
-        if (isEmpty(page) || !isNumeric(page)) {
-            page = 1
-        } else {
-            page = parseInt(page)
-        }
-
-        await prisma.$transaction([
-            prisma.categories.findMany({
-                where: {
-                    name: {
-                        startsWith: "%" + name + "%"
-                    }
-                },
-                skip: offset * (page - 1),
-                take: offset,
-                orderBy: {
-                    name: "asc"
-                }
-            }),
-            prisma.categories.count({
-                where: {
-                    name: {
-                        startsWith: "%" + name + "%"
-                    }
-                }
-            })
-        ]).then(data => {
+        await prisma.categories.findMany({
+            orderBy: {
+                name: "asc"
+            }
+        }).then(data => {
             return res.json({
-                data: data[0],
-                count: data[1],
+                data: data,
                 status: 200
             })
-
         }).catch(error => {
             console.log(error)
             return res.json({
@@ -93,9 +64,8 @@ module.exports = {
                 status: 500
             })
         })
-
-
     },
+    
 
     updateCategory: async (req, res) => {
 

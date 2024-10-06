@@ -211,14 +211,18 @@ module.exports = {
         const file = req.file
         let imageUrl = null
 
-
         if (file) {
             const generatedName = crypto.randomBytes(10).toString('hex') + Date.now().toString()
-            imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_BUCKET_REGION}.amazonaws.com/${generatedName}`
+            imageUrl = generatedName
             const fileBuffer = await sharp(file.buffer)
-                .resize({ height: 720, width: 1280, fit: "contain" })
+                .resize({
+                    height: 720,
+                    width: 1280,
+                    fit: 'cover',
+                    withoutEnlargement: true
+                })
+                .toFormat("jpeg", { quality: 80 })
                 .toBuffer();
-
             try {
                 await s3.uploadFile(fileBuffer, generatedName, file.mimetype)
             } catch (error) {
@@ -228,24 +232,35 @@ module.exports = {
                     message: "An error has acurred dasdads"
                 });
             }
-
         }
 
         let data = {
             name: userUpdate.name
         }
 
-        if (imageUrl != null) {
+        if (imageUrl != null || req.body.image == "delete") {
             data["image"] = imageUrl
+            await prisma.users.findFirst({
+                where: {
+                    id: userId
+                }
+            }).then(async (data) => {
+                await s3.deleteFile(data.image)
+            }).catch(error => {
+                console.log(error)
+            })
         }
+
+
 
         await prisma.users.update({
             where: {
                 id: userId
             },
             data: data
-        }).then(data => {
-            const token = jwt.token(data)
+        }).then(async (data) => {
+
+            const token = await jwt.token(data)
             return res.json({
                 status: 200,
                 token: token,

@@ -8,11 +8,9 @@ module.exports = {
         const post = req.body;
         const id = req.user.id;
 
-        let found = false;
-
         try {
 
-            if (!validation.isNumeric(post.product_id)) {
+            if (!validation.isNumeric(post.product_id.toString())) {
                 return res.json({
                     status: 409,
                     message: "didn't pass validation"
@@ -28,15 +26,15 @@ module.exports = {
 
         await prisma.wishlist.findFirst({
             where: {
-                user_id: Number(id),
-                product_id: Number(post.product_id)
+                user_id: parseInt(id),
+                product_id: parseInt(post.product_id)
             }
         }).then(async (data) => {
             if (data == null) {
                 await prisma.wishlist.create({
                     data: {
-                        product_id: Number(post.product_id),
-                        user_id: Number(id)
+                        product_id: parseInt(post.product_id),
+                        user_id: parseInt(id)
                     }
                 }).then(data => {
                     return res.json({
@@ -50,10 +48,25 @@ module.exports = {
                         message: error
                     })
                 })
-            }else{
-                return res.json({
-                    status: 400,
-                    message: "repeated"
+            } else {
+                await prisma.wishlist.deleteMany({
+                    where: {
+                        user_id: parseInt(id),
+                        product_id: parseInt(post.product_id)
+                    }
+                }).then(data => {
+
+                    return res.json({
+                        status: 200,
+                        data: data
+                    })
+
+                }).catch(error => {
+                    console.log(error)
+                    return res.json({
+                        status: 500,
+                        message: error
+                    })
                 })
             }
         }).catch(error => {
@@ -68,14 +81,14 @@ module.exports = {
     read: async (req, res) => {
 
         let userId = req.user.id;
-        let page = req.query.page ?? "";
-        let offset = 2;
+        let page = req.query.page ?? "0";
+        let offset = 6;
 
         if (validation.isEmpty(page) || !validation.isNumeric(page)) {
-            page = 1
-        } else  {
+            page = 0
+        } else {
             page = parseInt(page)
-        } 
+        }
 
         await prisma.$transaction([
             prisma.wishlist.findMany(
@@ -83,10 +96,13 @@ module.exports = {
                     where: {
                         user_id: parseInt(userId)
                     },
-                    skip: parseInt(offset) * parseInt(page - 1),
+                    skip: parseInt(offset) * parseInt(page),
                     take: parseInt(offset),
                     orderBy: {
                         id: "desc"
+                    },
+                    include:{
+                        products: true
                     }
                 }),
 
@@ -108,7 +124,7 @@ module.exports = {
             })
         })
 
-       
+
 
     },
 

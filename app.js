@@ -19,7 +19,7 @@ const corsOptions = {
   }
 };
 
-app.use(cors(corsOptions));
+app.use(cors());
 
 const routes = require("./routes/index");
 app.use("/api", routes);

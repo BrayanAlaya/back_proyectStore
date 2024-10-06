@@ -6,16 +6,16 @@ module.exports = {
 
         let userId = req.user.id;
         let body = req.body;
-
         try {
 
-            if (isEmpty(body.product_id) || isEmpty(body.amount) || !isNumeric(body.amount)) {
+            if (!isNumeric(body.amount.toString()) || !isNumeric(body.product_id.toString())) {
                 return res.json({
                     status: 409,
                     message: "didn't pass validation"
                 })
             }
         } catch (error) {
+            console.log(error)
             return res.json({
                 data: error,
                 status: 500
@@ -25,8 +25,8 @@ module.exports = {
 
         await prisma.cart.findFirst({
             where: {
-                user_id: Number(userId),
-                product_id: Number(body.product_id)
+                user_id: parseInt(userId),
+                product_id: parseInt(body.product_id)
             }
         }).then(async (data) => {
 
@@ -34,40 +34,63 @@ module.exports = {
             let cantidad = 0;
 
             if (data != null) {
-                cantidad = Number(data.amount) + Number(body.amount);
-                id = Number(data.id)
+                cantidad = parseInt(data.amount) + parseInt(body.amount);
+                id = parseInt(data.id)
             } else {
-                cantidad = Number(body.amount);
+                cantidad = parseInt(body.amount);
+            }
+            
+            if (cantidad <= 0) {
+
+                await prisma.cart.delete({
+                    where: {
+                        id: parseInt(id)
+                    }
+                }).then(data => {
+                    return res.json({
+                        status: 200,
+                        data: data,
+                    })
+                }).catch(error => {
+                    console.log(error)
+                    return res.json({
+                        data: error,
+                        status: 400
+                    })
+                })
+
+            } else {
+
+                await prisma.cart.upsert({
+                    where: {
+                        id: parseInt(id)
+                    },
+                    update: {
+                        amount: cantidad
+                    },
+                    create: {
+                        user_id: parseInt(userId),
+                        product_id: parseInt(body.product_id),
+                        amount: cantidad
+                    }
+
+                }).then(data => {
+                    return res.json({
+                        status: 200,
+                        data: data,
+                    })
+                }).catch(error => {
+                    console.log(error)
+                    return res.json({
+                        data: error,
+                        status: 400
+                    })
+                })
             }
 
-            await prisma.cart.upsert({
-                where: {
-                    id: Number(id)
-                },
-                update: {
-                    amount: cantidad
-                },
-                create: {
-                    user_id: Number(userId),
-                    product_id: Number(body.product_id),
-                    amount: cantidad
-                }
-
-            }).then(data => {
-                return res.json({
-                    status: 200,
-                    data: data,
-                })
-            }).catch(error => {
-                console.log(error)
-                return res.json({
-                    data: error,
-                    status: 400
-                })
-            })
 
         }).catch(error => {
-
+            console.log(error)
             return res.json({
                 data: error,
                 status: 500
@@ -77,19 +100,15 @@ module.exports = {
 
     },
 
-    getByPage: async (req, res) => {
+    get: async (req, res) => {
 
         let userId = req.user.id;
-        let page = parseInt(req.query.page ?? "1");
-        let offset = 3;
 
         await prisma.$transaction([
             prisma.cart.findMany({
                 where: {
                     user_id: parseInt(userId)
                 },
-                skip: parseInt(offset) * parseInt(page - 1),
-                take: parseInt(offset),
                 include: {
                     products: true
                 },
