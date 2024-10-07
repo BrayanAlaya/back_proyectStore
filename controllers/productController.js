@@ -52,16 +52,26 @@ module.exports = {
                     await prisma.products.create({
                         data: {
                             name: post.name.trim().toLowerCase(),
-                            stock: Number(post.stock),
+                            stock: parseInt(post.stock),
                             image: JSON.stringify(imageUrl),
                             price: parseFloat(post.price.trim()),
                             description: post.description.trim(),
                             createdDate: moment().toISOString(),
-                            category_id: Number(post.category_id),
-                            user_id: Number(user_id),
+                            category_id: parseInt(post.category_id),
+                            user_id: parseInt(user_id),
                             eliminado: 0
                         }
-                    }).then(data => {
+                    }).then(async (data) => {
+
+                        await prisma.notifications.create({
+                            data: {
+                                title: "¡Producto Publicado Exitosamente!",
+                                message: "Tu producto " + post.name.trim().toLowerCase() + " ha sido publicado y ya está disponible para los compradores.",
+                                date: moment().toISOString(),
+                                user_Id: parseInt(user_id),
+                            }
+                        })
+
                         return res.json({
                             status: 200,
                             data: data
@@ -137,7 +147,7 @@ module.exports = {
                 where: search,
                 skip: parseInt(offset) * parseInt(page),
                 take: parseInt(offset),
-                orderBy:{
+                orderBy: {
                     id: "desc"
                 }
             }),
@@ -246,6 +256,8 @@ module.exports = {
                     await s3.uploadFile(fileBuffer, generatedName, file.mimetype)
                 })
 
+
+
                 dataUpdate["image"] = JSON.stringify(imageUrl)
 
             }).catch(error => {
@@ -259,7 +271,17 @@ module.exports = {
                 user_id: parseInt(user_id)
             },
             data: dataUpdate
-        }).then(data => {
+        }).then(async (data) => {
+
+            await prisma.notifications.create({
+                data: {
+                    title: "¡Producto Actualizado Exitosamente!",
+                    message: "Tu producto " + data.name + " ha sido actualizado y ya está disponible para los compradores.",
+                    date: moment().toISOString(),
+                    user_Id: parseInt(user_id),
+                }
+            })
+
             return res.json({
                 status: 200,
                 data: data
@@ -300,6 +322,14 @@ module.exports = {
             }
         }).then(async data => {
 
+            await prisma.notifications.create({
+                data: {
+                    title: "¡Producto Eliminado Correctamente!",
+                    message: "Tu producto " + data.name + " ha sido eliminado y ya no está disponible en la tienda.",
+                    date: moment().toISOString(),
+                    user_Id: parseInt(user_id),
+                }
+            })
 
             return res.json({
                 status: 200,

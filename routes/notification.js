@@ -6,6 +6,6 @@ const app = express();
 
 app.post("/", notificacionsController.create);
 app.get("/", authMiddlewate, notificacionsController.getByUser);
-app.put("/read/:id", authMiddlewate ,notificacionsController.updateRead);
+app.put("/:id", authMiddlewate ,notificacionsController.updateRead);
 
 module.exports = app;

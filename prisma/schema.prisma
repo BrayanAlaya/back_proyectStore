@@ -16,7 +16,7 @@ model categories {
 model notifications {
   id      Int       @id @default(autoincrement())
   title   String?   @db.VarChar(45)
-  message String?   @db.VarChar(45)
+  message String?   @db.VarChar(250)
   date    DateTime? @db.Date
   read    Int?      @db.TinyInt
   user_Id Int?

@@ -64,6 +64,15 @@ module.exports = {
                         data: payload
                     });
 
+                    await prisma.notifications.create({
+                        data: {
+                            title: "¡Tu cuenta ha creada verificada, pero queda un paso mas!",
+                            message: "¡Casi estás listo! Verifica tu correo electrónico para activar tu cuenta.",
+                            date: moment().toISOString(),
+                            user_Id: parseInt(data.id),
+                        },
+                    })
+
                     response = {
                         status: 200,
                         message: "User Created"
@@ -509,9 +518,18 @@ module.exports = {
                 auth_code: null,
                 code_try: 0
             }
-        }).then(data => {
+        }).then(async data => {
 
             if (data.auth == 1) {
+
+                await prisma.notifications.create({
+                    data: {
+                        title: "¡Tu cuenta ha sido verificada!",
+                        message: "Has autenticado tu cuenta correctamente. Ahora puedes disfrutar de todas las funcionalidades del marketplace.",
+                        date: moment().toISOString(),
+                        user_Id: parseInt(data.id),
+                    },
+                })
 
                 return res.json({
                     status: 200,

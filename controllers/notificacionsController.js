@@ -9,9 +9,9 @@ module.exports = {
 
         try {
 
-            var titleValid = !isEmpty(body.title)
-            var messageValid = !isEmpty(body.message)
-            var userIdValid = !isEmpty(body.user_id)
+            var titleValid = !validation.isEmpty(body.title)
+            var messageValid = !validation.isEmpty(body.message)
+            var userIdValid = validation.isNumeric(body.user_id.toString())
 
             if (titleValid && messageValid && userIdValid) {
 
@@ -20,7 +20,7 @@ module.exports = {
                         title: body.title,
                         message: body.message,
                         date: moment().toISOString(),
-                        user_Id: Number(body.user_id)
+                        user_Id: parseInt(body.user_id)
                     }
                 }).then(data => {
                     return res.json({
@@ -43,6 +43,7 @@ module.exports = {
             }
 
         } catch (error) {
+            console.log(error)
             return res.json({
                 status: 500,
             })
@@ -53,11 +54,11 @@ module.exports = {
     getByUser: async (req, res) => {
 
         let userId = req.user.id;
-        let page = req.query.page ?? "1";
+        let page = req.query.page ?? "0";
         let offset = 5;
 
         if (validation.isEmpty(page) || !validation.isNumeric(page)) {
-            page = 1
+            page = 0
         } else {
             page = parseInt(page)
         }
@@ -68,7 +69,7 @@ module.exports = {
                     where: {
                         user_Id: parseInt(userId)
                     },
-                    skip: parseInt(offset) * parseInt(page - 1),
+                    skip: parseInt(offset) * parseInt(page),
                     take: parseInt(offset),
                     orderBy: {
                         id: "desc"
@@ -98,7 +99,7 @@ module.exports = {
     },
 
     updateRead: async (req, res) => {
-        const id = Number(req.params.id);
+        const id = parseInt(req.params.id);
         const userId = req.user.id;
 
         await prisma.notifications.update({

@@ -21,6 +21,7 @@ module.exports = {
 
                 let monto = 0;
                 let description = []
+
                 data.forEach(d => {
                     monto += parseFloat(d.products.price) * parseFloat(d.amount)
                     description.push(d.products.name)
@@ -50,15 +51,28 @@ module.exports = {
                     })
                 );
 
+                const notifications = data.map(item =>
+                    prisma.notifications.create({
+                        data: {
+                            title: "¡Nueva Venta Realizada!",
+                            message: "Tu producto " + item.products.name + " ha sido vendido. Revisa los detalles en tu cuenta.",
+                            date: moment().toISOString(),
+                            user_Id: parseInt(item.products.user_id),
+                        },
+                    })
+                );
+
+
                 // Ejecutar todas las promesas dentro de una transacción
                 await prisma.$transaction(updates).catch(error => req.json({ message: "An error has ocurred", status: 500 }))
+                await prisma.$transaction(notifications).catch(error => req.json({ message: "An error has ocurred", status: 500 }))
 
                 await prisma.purchases.create({
                     data: {
                         user_id: parseInt(userId),
                         monto: monto,
                         date: moment().toISOString(true),
-                        description: description.join(",")
+                        description: description.join(", ")
                     }
                 }).then(async (purchaseData) => {
 
@@ -81,7 +95,17 @@ module.exports = {
                             where: {
                                 user_id: parseInt(userId)
                             }
-                        }).then(data => {
+                        }).then(async (data) => {
+
+                            await prisma.notifications.create({
+                                data: {
+                                    title: "¡Compra Realizada con Éxito!",
+                                    message: "Tu compra de " + description.join(", ") + " ha sido procesada. Revisa los detalles en tu cuenta.",
+                                    date: moment().toISOString(),
+                                    user_Id: parseInt(userId),
+                                },
+                            })
+
                             return res.json({
                                 data: data,
                                 status: 200
